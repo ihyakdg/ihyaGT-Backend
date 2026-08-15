@@ -3,6 +3,7 @@ const app = express();
 const bodyParser = require('body-parser');
 const rateLimiter = require('express-rate-limit');
 const compression = require('compression');
+const { parsePipePairs, pairsToObject, buildLoginToken } = require('./utils');
 
 app.use(compression({
     level: 5,
@@ -30,24 +31,19 @@ app.use(express.json());
 app.use(rateLimiter({ windowMs: 15 * 60 * 1000, max: 100, headers: true }));
 
 app.all('/player/login/dashboard', function (req, res) {
-    const tData = {};
+    let tData = {};
     try {
-        const uData = JSON.stringify(req.body).split('"')[1].split('\\n'); const uName = uData[0].split('|'); const uPass = uData[1].split('|');
-        for (let i = 0; i < uData.length - 1; i++) { const d = uData[i].split('|'); tData[d[0]] = d[1]; }
-        if (uName[1] && uPass[1]) { res.redirect('/player/growid/login/validate'); }
+        const pairs = parsePipePairs(req.body);
+        const hasCredentials = pairs[0].value && pairs[1].value;
+        tData = pairsToObject(pairs);
+        if (hasCredentials) { res.redirect('/player/growid/login/validate'); }
     } catch (why) { console.log(`Warning: ${why}`); }
 
     res.render(__dirname + '/public/html/dashboard.ejs', { data: tData });
 });
 
 app.all('/player/growid/login/validate', (req, res) => {
-    const _token = req.body._token;
-    const growId = req.body.growId;
-    const password = req.body.password;
-
-    const token = Buffer.from(
-        `_token=${_token}&growId=${growId}&password=${password}`,
-    ).toString('base64');
+    const token = buildLoginToken(req.body);
 
     res.send(
         `{"status":"success","message":"Account Validated.","token":"${token}","url":"","accountType":"growtopia"}`,
