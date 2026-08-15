@@ -102,7 +102,7 @@ app.all('/player/growid/login/validate', (req, res) => {
 app.all('/player/*', function (req, res) {
     const target = new URL(PLAYER_REDIRECT_BASE);
     target.pathname = req.path;
-    res.status(301).redirect(target.toString());
+    res.redirect(301, target.toString());
 });
 
 app.get('/', function (req, res) {
